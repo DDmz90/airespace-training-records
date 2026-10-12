@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Flight Training Record – Air-Espace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              gold: '#C5A572',
+              'gold-dark': '#A88B55',
+              'gold-light': '#D4BC94',
+              dark: '#1A1A1A',
+              'dark-card': '#242424',
+              'dark-border': '#333333',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .signature-pad { border: 2px dashed #555; border-radius: 0.75rem; background: #2a2a2a; touch-action: none; }
+    .progress-btn { transition: all 0.15s ease; }
+    .progress-btn.selected-passed { background: #16a34a; color: white; border-color: #16a34a; }
+    .progress-btn.selected-partial { background: #C5A572; color: #1A1A1A; border-color: #C5A572; }
+    .progress-btn.selected-failed { background: #dc2626; color: white; border-color: #dc2626; }
+    .exercise-btn { width: 2.75rem; height: 2.75rem; }
+    .exercise-btn.active-plus { background: #16a34a; color: white; border-color: #16a34a; }
+    .exercise-btn.active-minus { background: #dc2626; color: white; border-color: #dc2626; }
+    input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+    input.time-invalid { border-color: #dc2626 !important; box-shadow: 0 0 0 1px #dc2626; }
+    .leg-row input { min-width: 0; }
+    #training-form.is-locked .lock-hide { display: none !important; }
+    #training-form.is-locked .exercise-btn, #training-form.is-locked .progress-btn { pointer-events: none; }
+    #training-form.is-locked .signature-pad { border-style: solid; }
+    #training-form input:disabled, #training-form select:disabled, #training-form textarea:disabled { opacity: 1; -webkit-text-fill-color: currentColor; cursor: default; }
+  </style>
+</head>
+<body class="bg-brand-dark min-h-screen text-slate-100">
+
+  <nav class="bg-brand-dark-card border-b border-brand-dark-border sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #C5A572 0%, #A88B55 100%);">
+          <svg viewBox="0 0 24 24" class="w-6 h-6 text-brand-dark" fill="currentColor">
+            <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-semibold text-brand-gold text-sm tracking-wide">AIR-ESPACE / FLIGHT ACADEMY</div>
+          <div class="text-xs text-slate-400">Training Records</div>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="showView('list')" id="nav-list" class="px-3 py-1.5 text-sm rounded-lg bg-brand-gold/20 text-brand-gold font-medium">Records</button>
+        <button onclick="newRecord()" id="nav-form" class="px-3 py-1.5 text-sm rounded-lg text-slate-400 hover:bg-white/5 hover:text-slate-200">New Record</button>
+        <button onclick="showView('stats')" id="nav-stats" class="px-3 py-1.5 text-sm rounded-lg text-slate-400 hover:bg-white/5 hover:text-slate-200">Statistics</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-4 py-6">
+
+    <div id="view-list">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-white">Training Records</h1>
+        <button onclick="newRecord()" class="bg-brand-gold hover:bg-brand-gold-dark text-brand-dark px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          New Record
+        </button>
+      </div>
+      <div id="records-list" class="space-y-3"></div>
+      <div id="empty-state" class="text-center py-16 text-slate-500 hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 mx-auto mb-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <p class="text-lg">No training records yet</p>
+        <p class="text-sm mt-1">Create your first record to get started</p>
+      </div>
+    </div>
+
+    <div id="view-form" class="hidden">
+      <div class="bg-brand-dark-card rounded-2xl shadow-sm border border-brand-dark-border overflow-hidden">
+        
+        <div class="border-b border-brand-dark-border px-6 py-4 flex items-center justify-between" style="background: linear-gradient(90deg, #1f1f1f 0%, #2a2418 100%);">
+          <div>
+            <h1 class="text-xl font-bold text-brand-gold">Training Record</h1>
+            <p class="text-sm text-slate-400">Record and track flight training sessions</p>
+          </div>
+          <div id="form-status" class="text-xs text-slate-500 flex items-center gap-1">
+            <span class="w-2 h-2 bg-brand-gold rounded-full"></span> <span id="form-status-text">New</span>
+          </div>
+        </div>
+
+        <div id="lock-banner" class="hidden px-6 py-3 text-sm bg-brand-gold/10 border-b border-brand-gold/30 text-brand-gold-light">🔒 This record is completed &amp; locked. It is read-only.</div>
+        <form id="training-form" class="p-6 space-y-8" onsubmit="return false;">
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Training Type</label>
+              <select id="trainingType" class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-brand-gold focus:border-brand-gold">
+                <option value="LAPL-A">LAPL-A</option>
+                <option value="PPL-A" selected>PPL-A</option>
+                <option value="CPL-A">CPL-A</option>
+                <option value="SEIR">SEIR</option>
+                <option value="MEIR">MEIR</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Session Number</label>
+              <input type="text" id="sessionNumber" placeholder="e.g. 10.3" class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-brand-gold focus:border-brand-gold" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Date</label>
+              <input type="date" id="date" class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-brand-gold focus:border-brand-gold" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Student Name</label>
+              <input type="text" id="studentName" placeholder="Student full name" class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-brand-gold focus:border-brand-gold" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Instructor</label>
+            <input type="text" id="instructorName" placeholder="Instructor name" class="w-full max-w-md bg-brand-dark border border-brand-dark-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500" />
+          </div>
+
+          <!-- FLIGHT DETAILS -->
+          <div>
+            <h2 class="text-base font-semibold text-brand-gold mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+              Flight Details
+            </h2>
+
+            <!-- Previous session totals -->
+            <div class="mb-5 p-4 rounded-xl border border-brand-gold/30 bg-brand-gold/5">
+              <div class="text-xs font-semibold text-brand-gold mb-3 uppercase tracking-wide">Total from previous session</div>
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">Block Time</label>
+                  <input type="text" id="prev-block" placeholder="0:00" inputmode="decimal" class="time-text w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-500" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">Dual</label>
+                  <input type="text" id="prev-dual" placeholder="0:00" inputmode="decimal" class="time-text w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-500" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">PIC</label>
+                  <input type="text" id="prev-pic" placeholder="0:00" inputmode="decimal" class="time-text w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-500" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">LDG</label>
+                  <input type="number" id="prev-ldg" min="0" value="0" class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">FNPT II</label>
+                  <input type="text" id="prev-fnpt" placeholder="0:00" inputmode="decimal" class="time-text w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-500" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Legs -->
+            <div class="mb-3 flex items-center justify-between">
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Flight legs</div>
+              <button type="button" onclick="addLeg()" class="lock-hide text-xs bg-brand-gold/20 hover:bg-brand-gold/30 text-brand-gold px-3 py-1.5 rounded-lg font-medium flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Add leg
+              </button>
+            </div>
+
+            <div id="legs-container" class="space-y-3 mb-5"></div>
+
+            <!-- Session totals -->
+            <div class="p-4 rounded-xl border border-brand-dark-border bg-black/30">
+              <div class="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wide">Session totals (auto)</div>
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div>
+                  <label class="block text-[11px] text-slate-500 mb-1">Block Time</label>
+                  <input type="text" id="tot-block" readonly class="w-full bg-black/40 border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-brand-gold font-medium" value="0:00" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-500 mb-1">Dual</label>
+                  <input type="text" id="tot-dual" readonly class="w-full bg-black/40 border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-brand-gold font-medium" value="0:00" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-500 mb-1">PIC</label>
+                  <input type="text" id="tot-pic" readonly class="w-full bg-black/40 border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-brand-gold font-medium" value="0:00" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-500 mb-1">LDG</label>
+                  <input type="text" id="tot-ldg" readonly class="w-full bg-black/40 border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-brand-gold font-medium" value="0" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-500 mb-1">FNPT II</label>
+                  <input type="text" id="tot-fnpt" readonly class="w-full bg-black/40 border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-brand-gold font-medium" value="0:00" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Grand totals -->
+            <div class="mt-4 p-4 rounded-xl border-2 border-brand-gold/40 bg-brand-gold/10">
+              <div class="text-xs font-semibold text-brand-gold mb-3 uppercase tracking-wide">Grand total (Previous + Session)</div>
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">Block Time</label>
+                  <input type="text" id="grand-block" readonly class="w-full bg-brand-dark border border-brand-gold/30 rounded-lg px-2 py-1.5 text-sm text-brand-gold font-bold" value="0:00" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">Dual</label>
+                  <input type="text" id="grand-dual" readonly class="w-full bg-brand-dark border border-brand-gold/30 rounded-lg px-2 py-1.5 text-sm text-brand-gold font-bold" value="0:00" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">PIC</label>
+                  <input type="text" id="grand-pic" readonly class="w-full bg-brand-dark border border-brand-gold/30 rounded-lg px-2 py-1.5 text-sm text-brand-gold font-bold" value="0:00" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">LDG</label>
+                  <input type="text" id="grand-ldg" readonly class="w-full bg-brand-dark border border-brand-gold/30 rounded-lg px-2 py-1.5 text-sm text-brand-gold font-bold" value="0" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-400 mb-1">FNPT II</label>
+                  <input type="text" id="grand-fnpt" readonly class="w-full bg-brand-dark border border-brand-gold/30 rounded-lg px-2 py-1.5 text-sm text-brand-gold font-bold" value="0:00" />
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-brand-gold/20 flex flex-wrap items-end gap-3">
+                <div>
+                  <label for="total-time" class="block text-[11px] text-brand-gold font-semibold uppercase tracking-wide mb-1">Total Time</label>
+                  <input type="text" id="total-time" placeholder="0:00" inputmode="decimal" class="time-text w-32 bg-brand-dark border border-brand-gold/50 rounded-lg px-2 py-1.5 text-base text-brand-gold font-bold" value="0:00" />
+                </div>
+                <div class="text-[11px] text-slate-500 pb-2"><span id="total-time-mode">Auto (grand total block time)</span> <button type="button" id="total-time-reset" onclick="resetTotalTime()" class="lock-hide hidden ml-1 text-brand-gold hover:text-brand-gold-light underline">reset to auto</button></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exercises -->
+          <div>
+            <h2 class="text-base font-semibold text-brand-gold mb-3 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              Exercises
+            </h2>
+            <p class="text-xs text-slate-500 mb-3">Mark + (good) or – (needs work). Leave empty if not applicable.</p>
+            <div id="exercises-list" class="space-y-2"></div>
+          </div>
+
+          <!-- Debriefing -->
+          <div>
+            <h2 class="text-base font-semibold text-brand-gold mb-3 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+              Debriefing
+            </h2>
+            <textarea id="debriefing" rows="4" placeholder="Add notes, strengths, areas for improvement, and next steps..." class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-brand-gold focus:border-brand-gold resize-y"></textarea>
+          </div>
+
+          <!-- Progress -->
+          <div>
+            <h2 class="text-base font-semibold text-brand-gold mb-3 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              Progress
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button type="button" onclick="selectProgress('passed')" id="prog-passed" class="progress-btn border-2 border-brand-dark-border rounded-xl p-4 text-left hover:border-green-600">
+                <div class="font-semibold text-white">Passed</div>
+                <div class="text-xs text-slate-400 mt-0.5">All objectives met</div>
+              </button>
+              <button type="button" onclick="selectProgress('partial')" id="prog-partial" class="progress-btn border-2 border-brand-dark-border rounded-xl p-4 text-left hover:border-brand-gold">
+                <div class="font-semibold text-white">Partial passed</div>
+                <div class="text-xs text-slate-400 mt-0.5">Some objectives met</div>
+              </button>
+              <button type="button" onclick="selectProgress('failed')" id="prog-failed" class="progress-btn border-2 border-brand-dark-border rounded-xl p-4 text-left hover:border-red-600">
+                <div class="font-semibold text-white">Failed</div>
+                <div class="text-xs text-slate-400 mt-0.5">Objectives not met</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Signatures -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-300 mb-2">Instructor Signature</h3>
+              <canvas id="sig-instructor" class="signature-pad w-full h-32"></canvas>
+              <div class="lock-hide flex gap-2 mt-2">
+                <button type="button" onclick="clearSig('instructor')" class="text-xs text-slate-500 hover:text-slate-300 px-2 py-1">Clear</button>
+                <button type="button" onclick="toggleTypeSig('instructor')" class="text-xs text-brand-gold hover:text-brand-gold-light px-2 py-1">Type name instead</button>
+              </div>
+              <input type="text" id="sig-instructor-text" placeholder="Type instructor name" class="hidden w-full mt-2 bg-brand-dark border border-brand-dark-border rounded-lg px-3 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <h3 class="text-sm font-semibold text-slate-300 mb-2">Student Signature</h3>
+              <canvas id="sig-student" class="signature-pad w-full h-32"></canvas>
+              <div class="lock-hide flex gap-2 mt-2">
+                <button type="button" onclick="clearSig('student')" class="text-xs text-slate-500 hover:text-slate-300 px-2 py-1">Clear</button>
+                <button type="button" onclick="toggleTypeSig('student')" class="text-xs text-brand-gold hover:text-brand-gold-light px-2 py-1">Type name instead</button>
+              </div>
+              <input type="text" id="sig-student-text" placeholder="Type student name" class="hidden w-full mt-2 bg-brand-dark border border-brand-dark-border rounded-lg px-3 py-2 text-sm text-white" />
+            </div>
+          </div>
+
+          <div class="lock-hide flex flex-col sm:flex-row gap-3 pt-4 border-t border-brand-dark-border">
+            <button type="button" onclick="saveRecord(false)" class="flex-1 border border-brand-dark-border hover:bg-white/5 text-slate-300 font-medium py-3 px-4 rounded-xl text-sm">
+              Save as Draft
+            </button>
+            <button type="button" onclick="saveRecord(true)" class="flex-1 bg-brand-gold hover:bg-brand-gold-dark text-brand-dark font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              Complete & Lock
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div id="view-stats" class="hidden">
+      <h1 class="text-2xl font-bold text-white mb-6">Statistics</h1>
+      
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div class="bg-brand-dark-card rounded-xl border border-brand-dark-border p-5">
+          <div class="text-sm text-slate-400">Total Sessions</div>
+          <div class="text-3xl font-bold text-white mt-1" id="stat-total">0</div>
+        </div>
+        <div class="bg-brand-dark-card rounded-xl border border-green-900/50 p-5">
+          <div class="text-sm text-green-400">Passed</div>
+          <div class="text-3xl font-bold text-green-400 mt-1" id="stat-passed">0</div>
+        </div>
+        <div class="bg-brand-dark-card rounded-xl border border-brand-gold/30 p-5">
+          <div class="text-sm text-brand-gold">Partial passed</div>
+          <div class="text-3xl font-bold text-brand-gold mt-1" id="stat-partial">0</div>
+        </div>
+        <div class="bg-brand-dark-card rounded-xl border border-red-900/50 p-5">
+          <div class="text-sm text-red-400">Failed</div>
+          <div class="text-3xl font-bold text-red-400 mt-1" id="stat-failed">0</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div class="bg-brand-dark-card rounded-xl border border-brand-dark-border p-5">
+          <div class="text-sm text-slate-400">Pass Rate</div>
+          <div class="text-3xl font-bold text-white mt-1" id="stat-passrate">–</div>
+        </div>
+        <div class="bg-brand-dark-card rounded-xl border border-brand-dark-border p-5">
+          <div class="text-sm text-slate-400">This Month</div>
+          <div class="text-3xl font-bold text-white mt-1" id="stat-month">0</div>
+        </div>
+      </div>
+
+      <div class="bg-brand-dark-card rounded-xl border border-brand-dark-border p-6">
+        <h2 class="font-semibold text-brand-gold mb-4">Progress by Training Type</h2>
+        <div id="stats-by-type" class="space-y-5"></div>
+      </div>
+
+      <div class="mt-6 bg-brand-gold/10 border border-brand-gold/30 rounded-xl p-4 text-sm text-brand-gold-light">
+        <strong>Note:</strong> Full syllabus-based statistics (1.1, 1.2, 2.1…) will be added once the training syllabus structure is configured.
+      </div>
+    </div>
+
+  </main>
+
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brand-gold text-brand-dark px-5 py-3 rounded-xl text-sm font-semibold shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50"></div>
+
+  <script>
+    const EXERCISES = [
+      "Cockpit organisation, check-list",
+      "SOP",
+      "Circuit, landing",
+      "Navigation",
+      "Precautionary landing, emergency landing",
+      "Orientation (ADF, VOR, QDM, QDR)",
+      "Airwork, steep turns, stalls",
+      "System failure, emergencies",
+      "ATC",
+      "Airmanship, situation awareness, decision making"
+    ];
+
+    let currentProgress = null;
+    let exerciseMarks = {};
+    let sigPads = {};
+    let typingMode = { instructor: false, student: false };
+    let editingId = null;
+    let legCounter = 0;
+    let editingLocked = false;      // the record currently open is completed & locked
+    let editingCreatedAt = null;
+    let totalTimeManual = false;    // TOTAL TIME was overridden by the user
+    let sigImages = { instructor: null, student: null }; // stored signature images (to redraw after canvas resize)
+
+    function esc(v) {
+      return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function todayLocal() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // Size a signature canvas to its displayed size. Must run while the canvas is visible
+    // (a hidden canvas has offsetWidth 0, which previously produced a 0x0 canvas and empty signatures).
+    function resizeCanvas(who) {
+      const canvas = document.getElementById('sig-' + who);
+      const pad = sigPads[who];
+      if (!pad || !canvas.offsetWidth || !canvas.offsetHeight) return;
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const w = Math.round(canvas.offsetWidth * ratio), h = Math.round(canvas.offsetHeight * ratio);
+      if (canvas.width === w && canvas.height === h) return;
+      const data = pad.toData();
+      const wasEmpty = pad.isEmpty();
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').scale(ratio, ratio);
+      pad.clear();
+      if (data && data.length) pad.fromData(data);
+      else if (!wasEmpty && sigImages[who]) drawSigImage(who, sigImages[who]);
+    }
+    function resizeAllCanvases() { resizeCanvas('instructor'); resizeCanvas('student'); }
+    function drawSigImage(who, url) {
+      const canvas = document.getElementById('sig-' + who);
+      sigImages[who] = url;
+      const p = sigPads[who].fromDataURL(url, { width: canvas.offsetWidth || undefined, height: canvas.offsetHeight || undefined });
+      if (p && p.catch) p.catch(function() {});
+    }
+    function makeStubPad() {
+      return { isEmpty: function() { return true; }, clear: function() {}, toData: function() { return []; }, fromData: function() {},
+               fromDataURL: function() {}, toDataURL: function() { return null; }, on: function() {}, off: function() {}, addEventListener: function() {} };
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('date').value = todayLocal();
+
+      const container = document.getElementById('exercises-list');
+      EXERCISES.forEach((name, i) => {
+        exerciseMarks[i] = null;
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between bg-black/30 rounded-lg px-4 py-3 border border-brand-dark-border';
+        row.innerHTML = `
+          <span class="text-sm text-slate-200 pr-4">${name}</span>
+          <div class="flex gap-2 shrink-0">
+            <button type="button" onclick="setExercise(${i}, 'plus')" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-green-900/30 hover:border-green-600" data-ex="${i}" data-mark="plus">+</button>
+            <button type="button" onclick="setExercise(${i}, 'minus')" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-red-900/30 hover:border-red-600" data-ex="${i}" data-mark="minus">–</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      const opts = { backgroundColor: 'rgb(42, 42, 42)', penColor: 'rgb(197, 165, 114)' };
+      if (typeof SignaturePad === 'function') {
+        sigPads.instructor = new SignaturePad(document.getElementById('sig-instructor'), opts);
+        sigPads.student = new SignaturePad(document.getElementById('sig-student'), opts);
+        // a freshly drawn stroke replaces any previously loaded signature image
+        ['instructor', 'student'].forEach(function(who) {
+          sigPads[who].addEventListener('beginStroke', function() { sigImages[who] = null; });
+        });
+      } else {
+        // signature library failed to load (offline?) – fall back to typed signatures
+        sigPads.instructor = makeStubPad();
+        sigPads.student = makeStubPad();
+        window.__noSigPad = true;
+      }
+      window.addEventListener('resize', resizeAllCanvases);
+      window.addEventListener('orientationchange', function() { setTimeout(resizeAllCanvases, 200); });
+
+      ['prev-block','prev-dual','prev-pic','prev-ldg','prev-fnpt'].forEach(id => {
+        ['input', 'change', 'blur', 'keyup'].forEach(function(t) { document.getElementById(id).addEventListener(t, recalcAll); });
+      });
+      const tt = document.getElementById('total-time');
+      tt.addEventListener('input', function() {
+        totalTimeManual = tt.value.trim() !== '';
+        updateTotalTimeMode();
+      });
+      tt.addEventListener('blur', function() { if (!tt.value.trim()) { totalTimeManual = false; recalcAll(); updateTotalTimeMode(); } });
+      // live auto-format: '1000' -> '10:00' (clock) / '0130' -> '1:30' (duration) as soon as the 4th digit is typed.
+      // Deletions are ignored so backspacing/editing never re-triggers formatting.
+      document.getElementById('training-form').addEventListener('input', function(e) {
+        const el = e.target;
+        if (!el.classList || !(el.classList.contains('clock-text') || el.classList.contains('time-text'))) return;
+        if (e.inputType && e.inputType.indexOf('delete') === 0) { el.classList.remove('time-invalid'); return; }
+        const f = fourDigitFormat(el, el.value.trim());
+        if (f === undefined) { el.classList.remove('time-invalid'); return; }
+        if (f === null) { el.classList.add('time-invalid'); return; }
+        el.classList.remove('time-invalid');
+        el.value = f;
+        try { el.setSelectionRange(f.length, f.length); } catch (err) {}
+      }, true);
+
+      // normalise duration fields (Dual, PIC, FNPT, previous totals, TOTAL TIME) to H:MM when leaving the field
+      document.getElementById('training-form').addEventListener('focusout', function(e) {
+        const el = e.target;
+        if (el.classList && el.classList.contains('time-text') && el.value.trim()) {
+          if (durationInvalid(el.value)) el.classList.add('time-invalid');
+          else { el.classList.remove('time-invalid'); el.value = formatTime(parseTime(el.value)); }
+        }
+        if (el.classList && el.classList.contains('clock-text') && el.value.trim()) {
+          el.value = normClock(el.value);
+        }
+        setTimeout(recalcAll, 0);
+      });
+
+      addLeg();
+      renderList();
+      showView('list');
+    });
+    // browsers may restore typed form values on reload / back navigation without firing input events
+    window.addEventListener('pageshow', function() { if (typeof recalcAll === 'function' && document.querySelector('.leg-row')) recalcAll(); });
+
+    // Duration (Dual / PIC / FNPT / totals) -> minutes.
+    // Accepts 1:30, 1.30, 1,30, 1h30, 1h, 1.5 (one decimal = decimal hours), 90 (plain number = minutes).
+    function parseTime(str) {
+      if (str == null) return 0;
+      str = String(str).trim().toLowerCase().replace(/\s+/g, '');
+      if (!str) return 0;
+      let m = str.match(/^(\d+)[.,](\d)$/);
+      if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10) * 6;
+      m = str.match(/^(\d{2})(\d{2})$/);   // 0130 -> 1:30
+      if (m) return +m[2] > 59 ? 0 : (+m[1]) * 60 + (+m[2]);
+      m = str.match(/^(\d*)[:.,h'](\d{0,2})(?:m|min)?$/);
+      if (m) return (parseInt(m[1], 10) || 0) * 60 + (parseInt(m[2], 10) || 0);
+      m = str.match(/^(\d+)(?:m|min)?$/);
+      if (m) return parseInt(m[1], 10);
+      return 0;
+    }
+
+    // Clock time (Block OFF / ON) -> minutes after midnight, or null if incomplete/invalid.
+    // Accepts 10:30, 10.30, 10,30, 10h30, 10 30, 1030, 930 (=09:30), 10 / 10h (=10:00), 24:00. Partial entries (e.g. 10:3) -> null.
+    function parseClock(str) {
+      if (str == null) return null;
+      str = String(str).trim().toLowerCase();
+      if (!str) return null;
+      let h, mi, m = str.match(/^(\d{1,2})\s*[:.,h\s]\s*(\d{2})$/);
+      if (m) { h = +m[1]; mi = +m[2]; }
+      else if ((m = str.match(/^(\d{3,4})$/))) { h = +m[1].slice(0, -2); mi = +m[1].slice(-2); }
+      else if ((m = str.match(/^(\d{1,2})\s*h?$/))) { h = +m[1]; mi = 0; }
+      else return null;
+      if (h === 24 && mi === 0) h = 0;
+      if (h > 23 || mi > 59) return null;
+      return h * 60 + mi;
+    }
+    // 4 digits with no separator typed into a time field -> formatted value, or null if invalid (e.g. 2560 / 0175)
+    function fourDigitFormat(el, v) {
+      const m = /^(\d{2})(\d{2})$/.exec(v);
+      if (!m) return undefined;
+      const h = +m[1], mi = +m[2];
+      if (mi > 59) return null;
+      if (el.classList.contains('clock-text')) {
+        if (h === 24 && mi === 0) return '00:00';
+        return h > 23 ? null : fmtClock(h * 60 + mi);
+      }
+      return formatTime(h * 60 + mi);
+    }
+    function durationInvalid(v) {
+      const m = /^\s*(\d{2})(\d{2})\s*$/.exec(v || '');
+      return !!(m && +m[2] > 59);
+    }
+
+    function fmtClock(mins) {
+      return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+    }
+    function normClock(str) {
+      const v = parseClock(str);
+      return v == null ? (str == null ? '' : String(str)) : fmtClock(v);
+    }
+
+    function updateTotalTimeMode() {
+      document.getElementById('total-time-mode').textContent = totalTimeManual ? 'Manually set' : 'Auto (grand total block time)';
+      document.getElementById('total-time-reset').classList.toggle('hidden', !totalTimeManual);
+    }
+    function resetTotalTime() {
+      if (editingLocked) return;
+      totalTimeManual = false;
+      recalcAll();
+      updateTotalTimeMode();
+    }
+
+    function formatTime(mins) {
+      if (!mins || mins <= 0) return '0:00';
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return h + ':' + String(m).padStart(2, '0');
+    }
+
+    function calcBlockMinutes(off, on) {
+      const a = parseClock(off), b = parseClock(on);
+      if (a == null || b == null) return 0;
+      let mins = b - a;
+      if (mins < 0) mins += 24 * 60;   // across midnight
+      return mins;
+    }
+
+    function addLeg(data) {
+      data = data || {};
+      legCounter++;
+      const id = legCounter;
+      const div = document.createElement('div');
+      div.className = 'leg-row p-3 rounded-xl border border-brand-dark-border bg-black/20 relative';
+      div.dataset.legId = id;
+      div.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-slate-500 font-medium">Leg</span>
+          <button type="button" onclick="removeLeg(this)" class="lock-hide text-xs text-red-400 hover:text-red-300 px-2 py-0.5 rounded hover:bg-red-900/20">Remove</button>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">ACFT Reg</label>
+            <input type="text" data-field="aircraft" value="${esc(data.aircraft)}" placeholder="HB-XXX" class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-600" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">Departure</label>
+            <input type="text" data-field="departure" value="${esc(data.departure)}" placeholder="LSGL" class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-600" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">Arrival</label>
+            <input type="text" data-field="arrival" value="${esc(data.arrival)}" placeholder="LSGL" class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-600" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">Block OFF</label>
+            <input type="text" data-field="blockOff" value="${esc(normClock(data.blockOff))}" placeholder="HH:MM" inputmode="numeric" maxlength="5" autocomplete="off" class="clock-text w-full placeholder-slate-600 bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">Block ON</label>
+            <input type="text" data-field="blockOn" value="${esc(normClock(data.blockOn))}" placeholder="HH:MM" inputmode="numeric" maxlength="5" autocomplete="off" class="clock-text w-full placeholder-slate-600 bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">Block Time</label>
+            <input type="text" data-calc="block" readonly tabindex="-1" value="0:00" class="w-full bg-black/40 border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-brand-gold font-medium" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">Dual</label>
+            <input type="text" data-field="dual" value="${esc(data.dual)}" placeholder="0:00" inputmode="decimal" class="time-text w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-600" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">PIC</label>
+            <input type="text" data-field="pic" value="${esc(data.pic)}" placeholder="0:00" inputmode="decimal" class="time-text w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-600" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">LDG</label>
+            <input type="number" data-field="ldg" value="${data.ldg != null ? data.ldg : 0}" min="0" class="w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">FNPT II</label>
+            <input type="text" data-field="fnpt" value="${esc(data.fnpt)}" placeholder="0:00" inputmode="decimal" class="time-text w-full bg-brand-dark border border-brand-dark-border rounded-lg px-2 py-1.5 text-sm text-white placeholder-slate-600" />
+          </div>
+        </div>
+      `;
+      document.getElementById('legs-container').appendChild(div);
+      div.querySelectorAll('input').forEach(inp => {
+        ['input', 'change', 'blur', 'keyup'].forEach(function(t) { inp.addEventListener(t, recalcAll); });
+      });
+      renumberLegs();
+      recalcAll();
+    }
+
+    function removeLeg(btn) {
+      if (document.querySelectorAll('.leg-row').length <= 1) {
+        showToast('At least one leg is required');
+        return;
+      }
+      btn.closest('.leg-row').remove();
+      renumberLegs();
+      recalcAll();
+    }
+
+    function renumberLegs() {
+      document.querySelectorAll('.leg-row').forEach((row, i) => {
+        row.querySelector('span').textContent = 'Leg ' + (i + 1);
+      });
+    }
+
+    function getLegsData() {
+      return Array.from(document.querySelectorAll('.leg-row')).map(row => {
+        const obj = {};
+        row.querySelectorAll('[data-field]').forEach(inp => {
+          obj[inp.dataset.field] = inp.value;
+        });
+        return obj;
+      });
+    }
+
+    function recalcAll() {
+      let block = 0, dual = 0, pic = 0, ldg = 0, fnpt = 0;
+      document.querySelectorAll('.leg-row').forEach(row => {
+        const offEl = row.querySelector('[data-field="blockOff"]');
+        const onEl = row.querySelector('[data-field="blockOn"]');
+        const legBlock = calcBlockMinutes(offEl.value, onEl.value);
+        [offEl, onEl].forEach(function(el) {
+          // flag only finished entries that can't be read as a time (not while still typing)
+          const bad = el.value.trim() !== '' && parseClock(el.value) == null &&
+                      (document.activeElement !== el || /^\d{4}$/.test(el.value.trim()));
+          el.classList.toggle('time-invalid', bad);
+        });
+        const out = row.querySelector('[data-calc="block"]');
+        if (out) out.value = (parseClock(offEl.value) != null && parseClock(onEl.value) != null) ? formatTime(legBlock) : '–';
+        block += legBlock;
+        dual += parseTime(row.querySelector('[data-field="dual"]').value);
+        pic  += parseTime(row.querySelector('[data-field="pic"]').value);
+        ldg  += parseInt(row.querySelector('[data-field="ldg"]').value, 10) || 0;
+        fnpt += parseTime(row.querySelector('[data-field="fnpt"]').value);
+      });
+      document.getElementById('tot-block').value = formatTime(block);
+      document.getElementById('tot-dual').value  = formatTime(dual);
+      document.getElementById('tot-pic').value   = formatTime(pic);
+      document.getElementById('tot-ldg').value   = ldg;
+      document.getElementById('tot-fnpt').value  = formatTime(fnpt);
+
+      const gBlock = parseTime(document.getElementById('prev-block').value) + block;
+      const gDual  = parseTime(document.getElementById('prev-dual').value)  + dual;
+      const gPic   = parseTime(document.getElementById('prev-pic').value)   + pic;
+      const gLdg   = (parseInt(document.getElementById('prev-ldg').value, 10) || 0) + ldg;
+      const gFnpt  = parseTime(document.getElementById('prev-fnpt').value)  + fnpt;
+
+      document.getElementById('grand-block').value = formatTime(gBlock);
+      document.getElementById('grand-dual').value  = formatTime(gDual);
+      document.getElementById('grand-pic').value   = formatTime(gPic);
+      document.getElementById('grand-ldg').value   = gLdg;
+      document.getElementById('grand-fnpt').value  = formatTime(gFnpt);
+      if (!totalTimeManual) document.getElementById('total-time').value = formatTime(gBlock);
+    }
+
+    function setExercise(idx, mark) {
+      if (editingLocked) return;
+      const current = exerciseMarks[idx];
+      exerciseMarks[idx] = current === mark ? null : mark;
+      document.querySelectorAll('[data-ex="' + idx + '"]').forEach(btn => {
+        btn.classList.remove('active-plus', 'active-minus');
+        if (exerciseMarks[idx] && btn.dataset.mark === exerciseMarks[idx]) {
+          btn.classList.add('active-' + exerciseMarks[idx]);
+        }
+      });
+    }
+
+    function selectProgress(val) {
+      currentProgress = val;
+      if (!val) return;
+      ['passed', 'partial', 'failed'].forEach(p => {
+        document.getElementById('prog-' + p).classList.remove('selected-passed', 'selected-partial', 'selected-failed');
+      });
+      document.getElementById('prog-' + val).classList.add('selected-' + val);
+    }
+
+    function clearSig(who) {
+      if (editingLocked) return;
+      if (typingMode[who]) {
+        document.getElementById('sig-' + who + '-text').value = '';
+      } else {
+        sigPads[who].clear();
+        sigImages[who] = null;
+      }
+    }
+
+    function toggleTypeSig(who) {
+      typingMode[who] = !typingMode[who];
+      const canvas = document.getElementById('sig-' + who);
+      const input = document.getElementById('sig-' + who + '-text');
+      if (typingMode[who]) {
+        canvas.classList.add('hidden');
+        input.classList.remove('hidden');
+        input.focus();
+      } else {
+        canvas.classList.remove('hidden');
+        input.classList.add('hidden');
+        resizeCanvas(who);
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('opacity-0');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(function() { t.classList.add('opacity-0'); }, 2500);
+    }
+
+    function getRecords() {
+      try { return JSON.parse(localStorage.getItem('ae_records') || '[]'); }
+      catch(e) { return []; }
+    }
+    function saveRecords(list) {
+      localStorage.setItem('ae_records', JSON.stringify(list));
+    }
+
+    function saveRecord(lock) {
+      if (editingLocked) { showToast('This record is locked and cannot be changed'); return; }
+      const student = document.getElementById('studentName').value.trim();
+      if (!student) { showToast('Please enter student name'); return; }
+      if (lock && !currentProgress) { showToast('Please select progress'); return; }
+
+      let sigInstructor = null;
+      let sigStudent = null;
+      if (typingMode.instructor) {
+        sigInstructor = document.getElementById('sig-instructor-text').value || null;
+      } else if (!sigPads.instructor.isEmpty()) {
+        sigInstructor = sigPads.instructor.toDataURL('image/png');
+      }
+      if (sigInstructor && /^data:,?$/.test(sigInstructor)) sigInstructor = null;
+      if (typingMode.student) {
+        sigStudent = document.getElementById('sig-student-text').value || null;
+      } else if (!sigPads.student.isEmpty()) {
+        sigStudent = sigPads.student.toDataURL('image/png');
+      }
+      if (sigStudent && /^data:,?$/.test(sigStudent)) sigStudent = null;
+
+      const record = {
+        id: editingId || String(Date.now()),
+        trainingType: document.getElementById('trainingType').value,
+        sessionNumber: document.getElementById('sessionNumber').value.trim(),
+        date: document.getElementById('date').value,
+        studentName: student,
+        instructorName: document.getElementById('instructorName').value.trim(),
+        previous: {
+          block: document.getElementById('prev-block').value,
+          dual: document.getElementById('prev-dual').value,
+          pic: document.getElementById('prev-pic').value,
+          ldg: document.getElementById('prev-ldg').value,
+          fnpt: document.getElementById('prev-fnpt').value,
+        },
+        legs: getLegsData(),
+        sessionTotals: {
+          block: document.getElementById('tot-block').value,
+          dual: document.getElementById('tot-dual').value,
+          pic: document.getElementById('tot-pic').value,
+          ldg: document.getElementById('tot-ldg').value,
+          fnpt: document.getElementById('tot-fnpt').value,
+        },
+        grandTotals: {
+          block: document.getElementById('grand-block').value,
+          dual: document.getElementById('grand-dual').value,
+          pic: document.getElementById('grand-pic').value,
+          ldg: document.getElementById('grand-ldg').value,
+          fnpt: document.getElementById('grand-fnpt').value,
+        },
+        totalTime: document.getElementById('total-time').value || document.getElementById('grand-block').value,
+        totalTimeManual: totalTimeManual,
+        exercises: Object.assign({}, exerciseMarks),
+        debriefing: document.getElementById('debriefing').value.trim(),
+        progress: currentProgress,
+        locked: lock,
+        createdAt: editingCreatedAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        sigInstructor: sigInstructor,
+        sigStudent: sigStudent,
+      };
+
+      let list = getRecords();
+      if (editingId) {
+        list = list.map(function(r) { return r.id === editingId ? record : r; });
+      } else {
+        list.unshift(record);
+      }
+      try {
+        saveRecords(list);
+      } catch (e) {
+        showToast('Could not save: browser storage is full or unavailable');
+        return;
+      }
+      editingId = null;
+      editingCreatedAt = null;
+
+      showToast(lock ? 'Record completed & locked' : 'Draft saved');
+      resetForm();
+      renderList();
+      showView('list');
+    }
+
+    function resetForm() {
+      setFormLocked(false);
+      editingCreatedAt = null;
+      document.getElementById('training-form').reset();
+      document.getElementById('date').value = todayLocal();
+      document.getElementById('instructorName').value = '';
+      currentProgress = null;
+      exerciseMarks = {};
+      EXERCISES.forEach(function(_, i) { exerciseMarks[i] = null; });
+      document.querySelectorAll('.exercise-btn').forEach(function(b) { b.classList.remove('active-plus', 'active-minus'); });
+      ['passed', 'partial', 'failed'].forEach(function(p) {
+        document.getElementById('prog-' + p).classList.remove('selected-passed', 'selected-partial', 'selected-failed');
+      });
+      resetSignatures();
+
+      document.getElementById('legs-container').innerHTML = '';
+      legCounter = 0;
+      addLeg();
+
+      ['prev-block','prev-dual','prev-pic','prev-fnpt'].forEach(function(id) { document.getElementById(id).value = ''; });
+      document.getElementById('prev-ldg').value = 0;
+      totalTimeManual = false;
+      updateTotalTimeMode();
+      recalcAll();
+      setStatus('New');
+    }
+
+    function resetSignatures() {
+      sigPads.instructor.clear();
+      sigPads.student.clear();
+      sigImages = { instructor: null, student: null };
+      const noPad = !!window.__noSigPad;
+      typingMode = { instructor: noPad, student: noPad };
+      ['instructor', 'student'].forEach(function(who) {
+        document.getElementById('sig-' + who).classList.toggle('hidden', noPad);
+        document.getElementById('sig-' + who + '-text').classList.toggle('hidden', !noPad);
+        document.getElementById('sig-' + who + '-text').value = '';
+      });
+    }
+
+    function setStatus(text) {
+      document.getElementById('form-status-text').textContent = text;
+    }
+
+    // Locked (completed) records are read-only: disable every control and the signature pads.
+    function setFormLocked(locked) {
+      editingLocked = locked;
+      const form = document.getElementById('training-form');
+      form.classList.toggle('is-locked', locked);
+      document.getElementById('lock-banner').classList.toggle('hidden', !locked);
+      form.querySelectorAll('input, select, textarea, button').forEach(function(el) {
+        el.disabled = locked;
+      });
+      ['instructor', 'student'].forEach(function(who) {
+        if (sigPads[who]) { if (locked) sigPads[who].off(); else sigPads[who].on(); }
+      });
+    }
+
+    function newRecord() {
+      editingId = null;
+      showView('form');
+    }
+
+    function renderList() {
+      const list = getRecords();
+      const container = document.getElementById('records-list');
+      const empty = document.getElementById('empty-state');
+
+      if (list.length === 0) {
+        container.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      container.innerHTML = list.map(function(r) {
+        const progColor = r.progress === 'passed' ? 'bg-green-900/40 text-green-400 border-green-800' 
+                        : r.progress === 'partial' ? 'bg-brand-gold/20 text-brand-gold border-brand-gold/40' 
+                        : r.progress === 'failed' ? 'bg-red-900/40 text-red-400 border-red-800'
+                        : 'bg-white/5 text-slate-400 border-brand-dark-border';
+        const progLabel = r.progress === 'passed' ? 'Passed' : r.progress === 'partial' ? 'Partial' : r.progress === 'failed' ? 'Failed' : 'No result yet';
+        const total = r.totalTime || (r.grandTotals ? r.grandTotals.block : '–');
+        return '<div class="bg-brand-dark-card rounded-xl border border-brand-dark-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-brand-gold/30 transition">' +
+          '<div class="flex-1 min-w-0">' +
+            '<div class="flex items-center gap-2 flex-wrap">' +
+              '<span class="font-semibold text-white">' + esc(r.studentName) + '</span>' +
+              '<span class="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-300">' + esc(r.trainingType) + '</span>' +
+              '<span class="text-xs px-2 py-0.5 rounded-full border ' + progColor + '">' + progLabel + '</span>' +
+              (r.locked ? '<span class="text-xs text-slate-500">🔒</span>' : '<span class="text-xs text-brand-gold">Draft</span>') +
+            '</div>' +
+            '<div class="text-sm text-slate-400 mt-1">' +
+              esc(r.date || '–') + ' · Session ' + esc(r.sessionNumber || '–') + ' · ' + esc(r.instructorName || '–') + ' · Total ' + esc(total) +
+            '</div>' +
+          '</div>' +
+          '<div class="flex gap-2 shrink-0">' +
+            '<button type="button" data-id="' + esc(r.id) + '" onclick="editRecord(this.dataset.id)" class="text-sm text-brand-gold hover:text-brand-gold-light px-3 py-1.5 rounded-lg hover:bg-brand-gold/10">' + (r.locked ? 'View' : 'View / Edit') + '</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function editRecord(id) {
+      const r = getRecords().find(function(x) { return x.id === id; });
+      if (!r) return;
+      setFormLocked(false);
+      editingId = id;
+      editingCreatedAt = r.createdAt || null;
+
+      document.getElementById('trainingType').value = r.trainingType || 'PPL-A';
+      document.getElementById('sessionNumber').value = r.sessionNumber || '';
+      document.getElementById('date').value = r.date || '';
+      document.getElementById('studentName').value = r.studentName || '';
+      document.getElementById('instructorName').value = r.instructorName || '';
+      document.getElementById('debriefing').value = r.debriefing || '';
+
+      if (r.previous) {
+        document.getElementById('prev-block').value = r.previous.block || '';
+        document.getElementById('prev-dual').value  = r.previous.dual || '';
+        document.getElementById('prev-pic').value   = r.previous.pic || '';
+        document.getElementById('prev-ldg').value   = r.previous.ldg || 0;
+        document.getElementById('prev-fnpt').value  = r.previous.fnpt || '';
+      }
+
+      document.getElementById('legs-container').innerHTML = '';
+      legCounter = 0;
+      const legs = (r.legs && r.legs.length) ? r.legs : [{}];
+      legs.forEach(function(leg) { addLeg(leg); });
+
+      totalTimeManual = !!r.totalTimeManual;
+      updateTotalTimeMode();
+      recalcAll();
+      if (totalTimeManual && r.totalTime) document.getElementById('total-time').value = r.totalTime;
+
+      exerciseMarks = Object.assign({}, r.exercises || {});
+      document.querySelectorAll('.exercise-btn').forEach(function(btn) {
+        btn.classList.remove('active-plus', 'active-minus');
+        const idx = btn.dataset.ex;
+        if (exerciseMarks[idx] && btn.dataset.mark === exerciseMarks[idx]) {
+          btn.classList.add('active-' + exerciseMarks[idx]);
+        }
+      });
+
+      ['passed', 'partial', 'failed'].forEach(function(p) {
+        document.getElementById('prog-' + p).classList.remove('selected-passed', 'selected-partial', 'selected-failed');
+      });
+      selectProgress(r.progress || null);
+
+      // Show the form first so the signature canvases have their real size, then restore signatures.
+      resetSignatures();
+      showView('form');
+      ['instructor', 'student'].forEach(function(who) {
+        const sig = who === 'instructor' ? r.sigInstructor : r.sigStudent;
+        if (!sig) return;
+        if (String(sig).startsWith('data:image')) {
+          typingMode[who] = false;
+          document.getElementById('sig-' + who).classList.remove('hidden');
+          document.getElementById('sig-' + who + '-text').classList.add('hidden');
+          resizeCanvas(who);
+          if (!window.__noSigPad) drawSigImage(who, sig);
+          else {
+            // no signature library: show the stored image read-only
+            const img = document.getElementById('sig-' + who);
+            const ctx = img.getContext('2d'); const im = new Image();
+            im.onload = function() { ctx.drawImage(im, 0, 0, img.offsetWidth, img.offsetHeight); }; im.src = sig;
+          }
+        } else {
+          typingMode[who] = true;
+          document.getElementById('sig-' + who).classList.add('hidden');
+          document.getElementById('sig-' + who + '-text').classList.remove('hidden');
+          document.getElementById('sig-' + who + '-text').value = sig;
+        }
+      });
+
+      setFormLocked(!!r.locked);
+      setStatus(r.locked ? 'Locked' : 'Draft');
+    }
+
+    function renderStats() {
+      const list = getRecords();
+      const passed = list.filter(function(r) { return r.progress === 'passed'; }).length;
+      const partial = list.filter(function(r) { return r.progress === 'partial'; }).length;
+      const failed = list.filter(function(r) { return r.progress === 'failed'; }).length;
+
+      document.getElementById('stat-total').textContent = list.length;
+      document.getElementById('stat-passed').textContent = passed;
+      document.getElementById('stat-partial').textContent = partial;
+      document.getElementById('stat-failed').textContent = failed;
+
+      const rate = list.length ? Math.round((passed / list.length) * 100) + '%' : '–';
+      document.getElementById('stat-passrate').textContent = rate;
+
+      const thisMonth = todayLocal().slice(0, 7);
+      document.getElementById('stat-month').textContent = list.filter(function(r) { return (r.date || '').startsWith(thisMonth); }).length;
+
+      const types = ['LAPL-A', 'PPL-A', 'CPL-A', 'SEIR', 'MEIR'];
+      const container = document.getElementById('stats-by-type');
+      container.innerHTML = types.map(function(t) {
+        const subset = list.filter(function(r) { return r.trainingType === t; });
+        if (subset.length === 0) return '';
+        const p = subset.filter(function(r) { return r.progress === 'passed'; }).length;
+        const part = subset.filter(function(r) { return r.progress === 'partial'; }).length;
+        const f = subset.filter(function(r) { return r.progress === 'failed'; }).length;
+        return '<div>' +
+          '<div class="flex justify-between text-sm mb-2">' +
+            '<span class="font-medium text-white">' + t + '</span>' +
+            '<span class="text-slate-400">' + subset.length + (subset.length === 1 ? ' session' : ' sessions') + '</span>' +
+          '</div>' +
+          '<div class="flex gap-4 text-sm mb-2">' +
+            '<span class="text-green-400"><strong>' + p + '</strong> Passed</span>' +
+            '<span class="text-brand-gold"><strong>' + part + '</strong> Partial</span>' +
+            '<span class="text-red-400"><strong>' + f + '</strong> Failed</span>' +
+          '</div>' +
+          '<div class="h-3 bg-black/40 rounded-full overflow-hidden flex">' +
+            '<div class="bg-green-500 h-full" style="width:' + (subset.length ? (p/subset.length)*100 : 0) + '%"></div>' +
+            '<div class="bg-brand-gold h-full" style="width:' + (subset.length ? (part/subset.length)*100 : 0) + '%"></div>' +
+            '<div class="bg-red-500 h-full" style="width:' + (subset.length ? (f/subset.length)*100 : 0) + '%"></div>' +
+          '</div>' +
+        '</div>';
+      }).join('') || '<p class="text-slate-500 text-sm">No data yet</p>';
+    }
+
+    function showView(name) {
+      ['list', 'form', 'stats'].forEach(function(v) {
+        document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
+        const nav = document.getElementById('nav-' + v);
+        if (v === name) {
+          nav.className = 'px-3 py-1.5 text-sm rounded-lg bg-brand-gold/20 text-brand-gold font-medium';
+        } else {
+          nav.className = 'px-3 py-1.5 text-sm rounded-lg text-slate-400 hover:bg-white/5 hover:text-slate-200';
+        }
+      });
+      if (name !== 'form') { editingId = null; editingCreatedAt = null; }
+      if (name === 'list') renderList();
+      if (name === 'stats') renderStats();
+      if (name === 'form' && !editingId) resetForm();
+      if (name === 'form') resizeAllCanvases();
+      window.scrollTo(0, 0);
+    }
+  </script>
+</body>
+</html>
