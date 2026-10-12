@@ -33,7 +33,6 @@
     .progress-btn.selected-partial { background: #C5A572; color: #1A1A1A; border-color: #C5A572; }
     .progress-btn.selected-failed { background: #dc2626; color: white; border-color: #dc2626; }
     .exercise-btn { width: 2.75rem; height: 2.75rem; touch-action: manipulation; }
-    .grade-cap { font-size: 0.625rem; line-height: 1; color: #94a3b8; text-align: center; white-space: nowrap; }
     .exercise-btn.active-plus { background: #16a34a; color: white; border-color: #16a34a; }
     .exercise-btn.active-zero { background: #d97706; color: white; border-color: #d97706; }
     .exercise-btn.active-minus { background: #dc2626; color: white; border-color: #dc2626; }
@@ -440,10 +439,10 @@
         row.className = 'flex items-center justify-between bg-black/30 rounded-lg px-4 py-3 border border-brand-dark-border';
         row.innerHTML = `
           <span class="text-sm text-slate-200 pr-4">${name}</span>
-          <div class="flex gap-2 shrink-0">
-            <div class="flex flex-col items-center gap-1"><button type="button" onclick="setExercise(${i}, 'plus')" title="Standard" aria-label="Standard" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-green-900/30 hover:border-green-600" data-ex="${i}" data-mark="plus">+</button><span class="grade-cap">Standard</span></div>
-            <div class="flex flex-col items-center gap-1"><button type="button" onclick="setExercise(${i}, 'zero')" title="Marginal" aria-label="Marginal" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-amber-900/30 hover:border-amber-600" data-ex="${i}" data-mark="zero">0</button><span class="grade-cap">Marginal</span></div>
-            <div class="flex flex-col items-center gap-1"><button type="button" onclick="setExercise(${i}, 'minus')" title="Below standard" aria-label="Below standard" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-red-900/30 hover:border-red-600" data-ex="${i}" data-mark="minus">–</button><span class="grade-cap">Below standard</span></div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="setExercise(${i}, 'plus')" title="Standard" aria-label="Standard" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-green-900/30 hover:border-green-600" data-ex="${i}" data-mark="plus">+</button>
+            <button type="button" onclick="setExercise(${i}, 'zero')" title="Marginal" aria-label="Marginal" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-amber-900/30 hover:border-amber-600" data-ex="${i}" data-mark="zero">0</button>
+            <button type="button" onclick="setExercise(${i}, 'minus')" title="Below standard" aria-label="Below standard" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-red-900/30 hover:border-red-600" data-ex="${i}" data-mark="minus">–</button>
           </div>
         `;
         container.appendChild(row);
