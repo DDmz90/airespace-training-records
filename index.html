@@ -32,8 +32,10 @@
     .progress-btn.selected-passed { background: #16a34a; color: white; border-color: #16a34a; }
     .progress-btn.selected-partial { background: #C5A572; color: #1A1A1A; border-color: #C5A572; }
     .progress-btn.selected-failed { background: #dc2626; color: white; border-color: #dc2626; }
-    .exercise-btn { width: 2.75rem; height: 2.75rem; }
+    .exercise-btn { width: 2.75rem; height: 2.75rem; touch-action: manipulation; }
+    .grade-cap { font-size: 0.625rem; line-height: 1; color: #94a3b8; text-align: center; white-space: nowrap; }
     .exercise-btn.active-plus { background: #16a34a; color: white; border-color: #16a34a; }
+    .exercise-btn.active-zero { background: #d97706; color: white; border-color: #d97706; }
     .exercise-btn.active-minus { background: #dc2626; color: white; border-color: #dc2626; }
     input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
     input.time-invalid { border-color: #dc2626 !important; box-shadow: 0 0 0 1px #dc2626; }
@@ -244,7 +246,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
               Exercises
             </h2>
-            <p class="text-xs text-slate-500 mb-3">Mark + (good) or – (needs work). Leave empty if not applicable.</p>
+            <p class="text-xs text-slate-500 mb-3">Mark + (Standard), 0 (Marginal) or – (Below standard). Leave empty if not applicable.</p>
             <div id="exercises-list" class="space-y-2"></div>
           </div>
 
@@ -439,8 +441,9 @@
         row.innerHTML = `
           <span class="text-sm text-slate-200 pr-4">${name}</span>
           <div class="flex gap-2 shrink-0">
-            <button type="button" onclick="setExercise(${i}, 'plus')" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-green-900/30 hover:border-green-600" data-ex="${i}" data-mark="plus">+</button>
-            <button type="button" onclick="setExercise(${i}, 'minus')" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-red-900/30 hover:border-red-600" data-ex="${i}" data-mark="minus">–</button>
+            <div class="flex flex-col items-center gap-1"><button type="button" onclick="setExercise(${i}, 'plus')" title="Standard" aria-label="Standard" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-green-900/30 hover:border-green-600" data-ex="${i}" data-mark="plus">+</button><span class="grade-cap">Standard</span></div>
+            <div class="flex flex-col items-center gap-1"><button type="button" onclick="setExercise(${i}, 'zero')" title="Marginal" aria-label="Marginal" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-amber-900/30 hover:border-amber-600" data-ex="${i}" data-mark="zero">0</button><span class="grade-cap">Marginal</span></div>
+            <div class="flex flex-col items-center gap-1"><button type="button" onclick="setExercise(${i}, 'minus')" title="Below standard" aria-label="Below standard" class="exercise-btn border border-slate-600 rounded-full flex items-center justify-center text-sm font-medium text-slate-300 hover:bg-red-900/30 hover:border-red-600" data-ex="${i}" data-mark="minus">–</button><span class="grade-cap">Below standard</span></div>
           </div>
         `;
         container.appendChild(row);
@@ -723,7 +726,7 @@
       const current = exerciseMarks[idx];
       exerciseMarks[idx] = current === mark ? null : mark;
       document.querySelectorAll('[data-ex="' + idx + '"]').forEach(btn => {
-        btn.classList.remove('active-plus', 'active-minus');
+        btn.classList.remove('active-plus', 'active-zero', 'active-minus');
         if (exerciseMarks[idx] && btn.dataset.mark === exerciseMarks[idx]) {
           btn.classList.add('active-' + exerciseMarks[idx]);
         }
@@ -872,7 +875,7 @@
       currentProgress = null;
       exerciseMarks = {};
       EXERCISES.forEach(function(_, i) { exerciseMarks[i] = null; });
-      document.querySelectorAll('.exercise-btn').forEach(function(b) { b.classList.remove('active-plus', 'active-minus'); });
+      document.querySelectorAll('.exercise-btn').forEach(function(b) { b.classList.remove('active-plus', 'active-zero', 'active-minus'); });
       ['passed', 'partial', 'failed'].forEach(function(p) {
         document.getElementById('prog-' + p).classList.remove('selected-passed', 'selected-partial', 'selected-failed');
       });
@@ -998,7 +1001,7 @@
 
       exerciseMarks = Object.assign({}, r.exercises || {});
       document.querySelectorAll('.exercise-btn').forEach(function(btn) {
-        btn.classList.remove('active-plus', 'active-minus');
+        btn.classList.remove('active-plus', 'active-zero', 'active-minus');
         const idx = btn.dataset.ex;
         if (exerciseMarks[idx] && btn.dataset.mark === exerciseMarks[idx]) {
           btn.classList.add('active-' + exerciseMarks[idx]);
